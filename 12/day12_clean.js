@@ -45,44 +45,50 @@ let queue = [
 ]
 //let paths = [];
 let paths = 0;
+let next_queue = []
 
 while(queue.length > 0) {
-    let curr = queue.splice(0, 1)[0];
+    for(let i = 0; i < queue.length; ++i) {
+        let curr = queue[i];
 
-    // Check for neighbours.
-    let neighbours = graph[curr.loc]
-        .filter(n => {
-            if(isLower(n)) {
-                if(n == 'start') {
-                    return false;
+        // Check for neighbours.
+        let neighbours = graph[curr.loc]
+            .filter(n => {
+                if(isLower(n)) {
+                    if(n == 'start') {
+                        return false;
+                    }
+                    // Only allowed if there is no double
+                    if(curr.double == null) {
+                        return true;
+                    }
+                    // There is a double, so can't visit twice
+                    return curr.path.indexOf(n) === -1;
                 }
-                // Only allowed if there is no double
-                if(curr.double == null) {
-                    return true;
-                }
-                // There is a double, so can't visit twice
-                return curr.path.indexOf(n) === -1;
-            }
-            // Not lower
-            return true;
-        });
-
-    neighbours.forEach(neighbour => {
-        newPath = [...curr.path, curr.loc];
-        newDouble = curr.double;
-        if(newDouble === null && isLower(neighbour) && curr.path.indexOf(neighbour) !== -1) {
-            newDouble = neighbour;
-        }
-        if(neighbour === 'end') {
-            paths++;
-        } else {
-            queue.push({
-                loc: neighbour,
-                path: newPath,
-                double: newDouble
+                // Not lower
+                return true;
             });
-        }
-    });
+
+        neighbours.forEach(neighbour => {
+            newPath = [...curr.path, curr.loc];
+            newDouble = curr.double;
+            if(newDouble === null && isLower(neighbour) && curr.path.indexOf(neighbour) !== -1) {
+                newDouble = neighbour;
+            }
+            if(neighbour === 'end') {
+                paths++;
+            } else {
+                next_queue.push({
+                    loc: neighbour,
+                    path: newPath,
+                    double: newDouble
+                });
+            }
+        });
+    }
+
+    queue = next_queue;
+    next_queue = [];
 }
 
 console.log(paths);

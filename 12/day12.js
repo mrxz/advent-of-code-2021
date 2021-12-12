@@ -74,51 +74,57 @@ getKey = (node) => `${node.path.join("-")}-${node.loc}|${node.double}`;
 let queue = [
     {loc: 'start', path: [], double: null}
 ]
+let next_queue = [];
 let paths = [];
 let visisted = {};
 
 while(queue.length > 0) {
-    let curr = queue.splice(0, 1)[0];
-    let key = getKey(curr); 
-    if(visisted[key]) {
-        continue;
-    }
-    visisted[key] = true;
-
-    // Check for neighbours.
-    let neighbours = graph[curr.loc]
-        .filter(n => {
-            if(isLower(n)) {
-                if(n == 'start') {
-                    return false;
-                }
-                // Only allowed if there is no double
-                if(curr.double == null) {
-                    return true;
-                }
-                // There is a double, so tough luck
-                return curr.path.indexOf(n) === -1;
-            }
-            // Not lower
-            return true;
-        });
-
-    neighbours.forEach(neighbour => {
-        newPath = [...curr.path, curr.loc];
-        newDouble = curr.double;
-        if(newDouble === null && isLower(neighbour) && curr.path.indexOf(neighbour) !== -1) {
-            newDouble = neighbour;
+    for(let i = 0; i < queue.length; ++i) {
+        let curr = queue[i];
+        let key = getKey(curr); 
+        if(visisted[key]) {
+            continue;
         }
-        if(neighbour === 'end') {
-            paths.push(newPath.join('-'))
-        } else {
-            queue.push({
-                loc: neighbour,
-                path: newPath,
-                double: newDouble
+        visisted[key] = true;
+
+        // Check for neighbours.
+        let neighbours = graph[curr.loc]
+            .filter(n => {
+                if(isLower(n)) {
+                    if(n == 'start') {
+                        return false;
+                    }
+                    // Only allowed if there is no double
+                    if(curr.double == null) {
+                        return true;
+                    }
+                    // There is a double, so tough luck
+                    return curr.path.indexOf(n) === -1;
+                }
+                // Not lower
+                return true;
             });
-        }
-    });
+
+        neighbours.forEach(neighbour => {
+            newPath = [...curr.path, curr.loc];
+            newDouble = curr.double;
+            if(newDouble === null && isLower(neighbour) && curr.path.indexOf(neighbour) !== -1) {
+                newDouble = neighbour;
+            }
+            if(neighbour === 'end') {
+                paths.push(newPath.join('-'))
+            } else {
+                next_queue.push({
+                    loc: neighbour,
+                    path: newPath,
+                    double: newDouble
+                });
+            }
+        });
+    }
+
+    queue = next_queue;
+    next_queue = [];
 }
 
 console.log(paths);
