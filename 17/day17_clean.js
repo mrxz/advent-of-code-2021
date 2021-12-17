@@ -17,9 +17,7 @@ works = (xVel, yVel) => {
         y += yVel;
         maxY = Math.max(maxY, y);
 
-        if(xVel != 0) {
-            xVel = xVel - Math.sign(xVel);
-        }
+        xVel -= Math.sign(xVel);
         yVel--;
 
         if(inside(x, y)) {
