@@ -1,4 +1,4 @@
-let input =[
+const input = [
     "--- scanner 0 ---",
     "399,875,-662",
     "753,395,664",
@@ -1166,7 +1166,7 @@ aligns = (a, b) => {
         for(let axis = 0; axis < 3; axis++) {
             for(let rot = 0; rot < 4; rot++) {
                 // Assuming axis is correct, rotate the others
-                const new_pts = reorientate(b, axis, flip === 1, rot);
+                const new_pts = reorientate(p, axis, flip, rot);
                 
                 // Go over the pairs of points, we don't have to check all of b, since any of the 12 matching should work,
                 // Meaning that if there are only 11 more to go, it can't possibly be a match/overlap.
@@ -1178,27 +1178,22 @@ aligns = (a, b) => {
                             y: a[i].y - new_pts[j].y,
                             z: a[i].z - new_pts[j].z
                         };
-                        // Adjust the points based on the offset
-                        const adjusted_pts = new_pts.map(p => ({
-                            x: p.x + offset.x,
-                            y: p.y + offset.y,
-                            z: p.z + offset.z }));
 
                         // Find all matching beacons based on the adjusted points
-                        const matching = {};
-                        adjusted_pts.forEach(p => matching[`${p.x}|${p.y}|${p.z}`] = 1);
-                        a.forEach(p => {
-                            const key = `${p.x}|${p.y}|${p.z}`;
-                            if(matching[key] >= 1) {
-                                matching[key]++;
-                            }
-                        });
+                        let matches = new_pts
+                            .map(p => a.some(p2 => p2.x === p.x + offset.x && p2.y === p.y + offset.y && p2.z === p.z + offset.z))
+                            .filter(x => x).length;
 
-
-                        const matches = Object.values(matching).filter(x => x > 1).length;
                         if(matches >= 12) {
+                            // Adjust the points based on the offset
+                            for(let p of new_pts) {
+                                p.x += offset.x;
+                                p.y += offset.y;
+                                p.z += offset.z;
+                            }
+
                             console.log('\tFound match: flip = ', flip, 'axis = ', axis, 'rot = ', rot);
-                            found = {offset, points: adjusted_pts};
+                            found = {offset, points: new_pts};
                             break outer;
                         }
                     }
@@ -1207,9 +1202,6 @@ aligns = (a, b) => {
         }
     }
 
-    if(!found) {
-        console.log('\tNo match found :-/');
-    }
     return found;
 }
 
@@ -1229,7 +1221,6 @@ while(toCheck.length > 0) {
     toCheck.forEach(i => {
         // Check if the newly placed scanner overlaps with any of the (still) unknown scanners
         [...unknown].forEach(j => {
-            console.log('-------- ', i, '->', j, '---------');
             const result = aligns(scanners[i], scanners[j]);
             if(result) {
                 // Overlap, so remove from unknown and add as candidate to check next round
