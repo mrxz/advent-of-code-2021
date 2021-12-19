@@ -1097,36 +1097,37 @@ for(let i = 0; i < input.length; i++) {
     }
 
     // Each point is simply an array with [x, y, z]
-    scanner.push(line.split(',').map(x => +x));
+    let p = line.split(',');
+    scanner.push({x: +p[0], y: +p[1], z: +p[2]});
 }
 
 // Rotate a point so that axis becomes the 'facing' axis, rotation determines the 'up' and 'right' axis
 // and flip inverts that configuration. This means that for the 3 axis, 4 rotations and 2 states of flip, there are 3*4*2=24 configurations
 rotate = (p, axis, rot, flip) => {
     // Points are [right, up, facing]
-    p = [...p];
+    p = {...p};
 
     // Axis + flip determine which direction we should be facing
     if(axis === 0) { // X
         // We are facing Z, but should be facing X, this means that X becomes Z
-        const tmp = p[2];
-        p[2] = p[0];
+        const tmp = p.z;
+        p.z = p.x;
         // Old Z is now left, but we record right, so invert
-        p[0] = -tmp;
+        p.x = -tmp;
     } else if(axis === 1) { // Y
         // We are facing Z, but should be facing Y, this means Y becomes Z
-        const tmp = p[2];
-        p[2] = p[1];
+        const tmp = p.z;
+        p.z = p.y;
         // Old Z is now down, but we record up, so invert
-        p[1] = -tmp;
+        p.y = -tmp;
     } else if(axis === 2) { // Z
         // We are already facing Z (Z == Z)
     }
 
     if(flip) {
-        p[2] = -p[2];
+        p.z = -p.z;
         // When flipping right/left gets inverted as well
-        p[0] = -p[0];
+        p.x = -p.x;
     }
 
     // Rotate
@@ -1134,18 +1135,18 @@ rotate = (p, axis, rot, flip) => {
         // No rotation needed
     } else if(rot === 1) {
         // 90 degrees, X become up
-        const tmp = p[0];
-        p[0] = p[1];
-        p[1] = -tmp;
+        const tmp = p.x;
+        p.x = p.y;
+        p.y = -tmp;
     } else if(rot === 2) {
         // 180 degrees, both axis flip
-        p[0] = -p[0];
-        p[1] = -p[1];
+        p.x = -p.x;
+        p.y = -p.y;
     } else if(rot === 3) {
         // -90 degrees, X becomes down
-        const tmp = p[0];
-        p[0] = -p[1];
-        p[1] = tmp;
+        const tmp = p.x;
+        p.x = -p.y;
+        p.y = tmp;
     }
     
     return p;
@@ -1172,22 +1173,29 @@ aligns = (a, b) => {
                 for(let i = 0; i < a.length; i++) {
                     for(let j = 0; j < b.length - 11; j++) {
                         // Determine offset from aligned points
-                        const offset = [a[i][0] - new_pts[j][0], a[i][1] - new_pts[j][1], a[i][2] - new_pts[j][2]];
+                        const offset = {
+                            x: a[i].x - new_pts[j].x,
+                            y: a[i].y - new_pts[j].y,
+                            z: a[i].z - new_pts[j].z
+                        };
                         // Adjust the points based on the offset
-                        adjusted_pts = new_pts.map(p => [p[0] + offset[0], p[1] + offset[1], p[2] + offset[2]]);
+                        const adjusted_pts = new_pts.map(p => ({
+                            x: p.x + offset.x,
+                            y: p.y + offset.y,
+                            z: p.z + offset.z }));
 
                         // Find all matching beacons based on the adjusted points
                         const matching = {};
-                        adjusted_pts.forEach(p => matching[`${p[0]}|${p[1]}|${p[2]}`] = 1);
+                        adjusted_pts.forEach(p => matching[`${p.x}|${p.y}|${p.z}`] = 1);
                         a.forEach(p => {
-                            const key = `${p[0]}|${p[1]}|${p[2]}`;
+                            const key = `${p.x}|${p.y}|${p.z}`;
                             if(matching[key] >= 1) {
                                 matching[key]++;
                             }
                         });
 
 
-                        const matches = Object.values(matching).filter(x => x>1).length;
+                        const matches = Object.values(matching).filter(x => x > 1).length;
                         if(matches >= 12) {
                             console.log('\tFound match: flip = ', flip, 'axis = ', axis, 'rot = ', rot);
                             found = {offset, points: adjusted_pts};
@@ -1206,13 +1214,13 @@ aligns = (a, b) => {
 }
 
 // Part 1
-const known = {0: [0, 0, 0]}; // Scanners of which the position is known
+const known = {0: {x: 0, y: 0, z: 0}}; // Scanners of which the position is known
 const unknown = [...new Array(scanners.length)].map((x, i) => i); // Scanners for which the position is unknown
 unknown.splice(0, 1);
 
 // Keep track of the known beacons relative to scanner 0
 const beacons = {};
-scanners[0].forEach(p => beacons[`${p[0]}|${p[1]}|${p[2]}`] = 1);
+scanners[0].forEach(p => beacons[`${p.x}|${p.y}|${p.z}`] = 1);
 
 // Scanners that have newly been placed (relative to scanner 0)
 let toCheck = [0];
@@ -1236,7 +1244,7 @@ while(toCheck.length > 0) {
                 
                 // Insert all points into the beacon set.
                 result.points.forEach(p => {
-                    const key = `${p[0]}|${p[1]}|${p[2]}`;
+                    const key = `${p.x}|${p.y}|${p.z}`;
                     beacons[key] = (beacons[key] || 0) + 1;
                 });
             }
@@ -1260,9 +1268,9 @@ let poses = Object.values(known);
 for(let i = 0; i < poses.length; i++) {
     for(let j = i; j < poses.length; j++) {
         const distance = 
-            Math.abs(poses[i][0] - poses[j][0]) +
-            Math.abs(poses[i][1] - poses[j][1]) +
-            Math.abs(poses[i][2] - poses[j][2]);
+            Math.abs(poses[i].x - poses[j].x) +
+            Math.abs(poses[i].y - poses[j].y) +
+            Math.abs(poses[i].z - poses[j].z);
         if(distance > max) {
             max = distance;
         }
